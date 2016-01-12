@@ -209,6 +209,8 @@ public class FMRadioService extends Service
    private Object mRecordSinkLock = new Object();
    private boolean mIsFMDeviceLoopbackActive = false;
 
+   private static Object mNotchFilterLock = new Object();
+
    public FMRadioService() {
    }
 
@@ -1489,14 +1491,13 @@ public class FMRadioService extends Service
                  }
          } else {
                if (mReceiver != null) {
-                   if( true == mNotchFilterSet )
-                   {
-                       mDelayedStopHandler.removeMessages(RESET_NOTCH_FILTER);
-                   }
-                   else
-                   {
-                       mReceiver.setNotchFilter(true);
-                       mNotchFilterSet = true;
+                   synchronized (mNotchFilterLock) {
+                       if (true == mNotchFilterSet) {
+                           mDelayedStopHandler.removeMessages(RESET_NOTCH_FILTER);
+                       } else {
+                           mReceiver.setNotchFilter(true);
+                           mNotchFilterSet = true;
+                       }
                    }
                }
          }
@@ -1526,9 +1527,13 @@ public class FMRadioService extends Service
               stopSelf(mServiceStartId);
               break;
           case RESET_NOTCH_FILTER:
-              if (mReceiver != null) {
-                  mReceiver.setNotchFilter(false);
-                  mNotchFilterSet = false;
+              synchronized (mNotchFilterLock) {
+                  if (false == mNotchFilterSet)
+                      break;
+                  if (mReceiver != null) {
+                      mReceiver.setNotchFilter(false);
+                      mNotchFilterSet = false;
+                  }
               }
               break;
           case STOPSERVICE_ONSLEEP:
