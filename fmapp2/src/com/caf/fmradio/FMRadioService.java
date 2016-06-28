@@ -728,9 +728,9 @@ public class FMRadioService extends Service
             mAudioBecomeNoisyListener = new BroadcastReceiver() {
                 @Override
                 public void onReceive(Context context, Intent intent) {
-                    Log.d(LOGTAG, "FMMediaButtonIntentReceiver.AUDIO_BECOMING_NOISY");
+                    Log.d(LOGTAG, "AUDIO_BECOMING_NOISY");
                     String intentAction = intent.getAction();
-                    if (FMMediaButtonIntentReceiver.AUDIO_BECOMING_NOISY.equals(intentAction)) {
+                    if (AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(intentAction)) {
                         mHeadsetPlugged = false;
                        if (isFmOn())
                        {
@@ -753,7 +753,7 @@ public class FMRadioService extends Service
                     }
                 }
             };
-            IntentFilter intentFilter = new IntentFilter(FMMediaButtonIntentReceiver.AUDIO_BECOMING_NOISY);
+            IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
             registerReceiver(mAudioBecomeNoisyListener, intentFilter);
         }
     }
