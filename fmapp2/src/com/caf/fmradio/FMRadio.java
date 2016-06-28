@@ -3184,6 +3184,12 @@ public class FMRadio extends Activity
           Log.d(LOGTAG, "mServiceCallbacks.onA2DPConnectionstateChanged :");
           A2DPConnectionState(state);
       }
+      public void onExit() {
+          Log.d(LOGTAG, "mServiceCallbacks.onFmExit:");
+          if (isFmOn())
+              disableRadio();
+          finish();
+      }
    };
 
     private void registerFMSettingListner() {

@@ -65,6 +65,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.Process;
 import android.os.RemoteException;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
@@ -119,6 +120,7 @@ public class FMRadioService extends Service
    private BroadcastReceiver mRecordTimeoutListener = null;
    private BroadcastReceiver mDelayedServiceStopListener = null;
    private BroadcastReceiver mAudioBecomeNoisyListener = null;
+   private BroadcastReceiver mUserSwitchedListener = null;
    private boolean mOverA2DP = false;
    private BroadcastReceiver mFmMediaButtonListener;
    private BroadcastReceiver mAirplaneModeChanged;
@@ -243,6 +245,7 @@ public class FMRadioService extends Service
       mSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS);
       mSession.setActive(true);
       registerAudioBecomeNoisy();
+      registerUserSwitched();
       if ( false == SystemProperties.getBoolean("ro.fm.mulinst.recording.support",true)) {
            mSingleRecordingInstanceSupported = true;
       }
@@ -299,6 +302,10 @@ public class FMRadioService extends Service
       if (mAudioBecomeNoisyListener != null) {
           unregisterReceiver(mAudioBecomeNoisyListener);
           mAudioBecomeNoisyListener = null;
+      }
+      if (mUserSwitchedListener != null) {
+          unregisterReceiver(mUserSwitchedListener);
+          mUserSwitchedListener = null;
       }
       if (mSleepExpiredListener != null ) {
           unregisterReceiver(mSleepExpiredListener);
@@ -755,6 +762,40 @@ public class FMRadioService extends Service
             };
             IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
             registerReceiver(mAudioBecomeNoisyListener, intentFilter);
+        }
+    }
+
+    public void registerUserSwitched() {
+        if (mUserSwitchedListener == null) {
+            mUserSwitchedListener = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String intentAction = intent.getAction();
+                    int userId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, -1);
+                    Log.d(LOGTAG, intentAction + ": " + Process.myUserHandle() + ", userId: " + userId);
+                    if (Process.myUserHandle().getIdentifier() != userId)
+                        return;
+                    if (Intent.ACTION_USER_BACKGROUND.equals(intentAction)
+                        || Intent.ACTION_USER_STOPPING.equals(intentAction)) {
+                        Log.d(LOGTAG, "user switched, stopSelf");
+                        if ((mServiceInUse) && (mCallbacks != null)) {
+                            try {
+                                mCallbacks.onExit();
+                            } catch (RemoteException e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            if (isFmOn())
+                                fmOff();
+                            stopSelf(mServiceStartId);
+                        }
+                    }
+                }
+            };
+            IntentFilter intentFilter =
+                    new IntentFilter(Intent.ACTION_USER_BACKGROUND);
+            intentFilter.addAction(Intent.ACTION_USER_STOPPING);
+            registerReceiverAsUser(mUserSwitchedListener, Process.myUserHandle(), intentFilter, null, null);
         }
     }
 
