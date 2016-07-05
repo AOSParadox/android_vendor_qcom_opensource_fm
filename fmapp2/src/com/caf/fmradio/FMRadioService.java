@@ -94,6 +94,7 @@ import android.os.Process;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningAppProcessInfo;
 import android.media.session.MediaSession;
+import android.media.session.PlaybackState;
 
 /**
  * Provides "background" FM Radio (that uses the hardware) capabilities,
@@ -239,8 +240,7 @@ public class FMRadioService extends Service
       registerFmMediaButtonReceiver();
       mSession = new MediaSession(getApplicationContext(), this.getClass().getName());
       mSession.setCallback(mSessionCallback);
-      mSession.setFlags(MediaSession.FLAG_EXCLUSIVE_GLOBAL_PRIORITY |
-                             MediaSession.FLAG_HANDLES_MEDIA_BUTTONS);
+      mSession.setFlags(MediaSession.FLAG_HANDLES_MEDIA_BUTTONS);
       mSession.setActive(true);
       registerAudioBecomeNoisy();
       if ( false == SystemProperties.getBoolean("ro.fm.mulinst.recording.support",true)) {
@@ -1091,6 +1091,10 @@ public class FMRadioService extends Service
        ComponentName fmRadio = new ComponentName(this.getPackageName(),
                                   FMMediaButtonIntentReceiver.class.getName());
        mAudioManager.registerMediaButtonEventReceiver(fmRadio);
+       mSession.setActive(true);
+       PlaybackState.Builder state = new PlaybackState.Builder();
+       state.setState(PlaybackState.STATE_PLAYING, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1.0f);
+       mSession.setPlaybackState(state.build());
        mStoppedOnFocusLoss = false;
 
        if (!mA2dpDeviceState.isDeviceAvailable()) {
@@ -1115,6 +1119,10 @@ public class FMRadioService extends Service
        Log.d(LOGTAG, "In stopFM");
        configureAudioDataPath(false);
        mPlaybackInProgress = false;
+       Log.d(LOGTAG,"Setting playback state to STOPPED");
+       PlaybackState.Builder state = new PlaybackState.Builder();
+       state.setState(PlaybackState.STATE_STOPPED, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1.0f);
+       mSession.setPlaybackState(state.build());
    }
 
    private void resetFM(){
@@ -1710,10 +1718,10 @@ public class FMRadioService extends Service
           ComponentName fmRadio = new ComponentName(this.getPackageName(),
                                   FMMediaButtonIntentReceiver.class.getName());
           mAudioManager.unregisterMediaButtonEventReceiver(fmRadio);
-          if (mSession.isActive()) {
-              Log.d(LOGTAG,"mSession is not active");
-              mSession.setActive(false);
-          }
+          mSession.setActive(false);
+          PlaybackState.Builder state = new PlaybackState.Builder();
+          state.setState(PlaybackState.STATE_STOPPED, PlaybackState.PLAYBACK_POSITION_UNKNOWN, 1.0f);
+          mSession.setPlaybackState(state.build());
       }
       gotoIdleState();
       mFMOn = false;
