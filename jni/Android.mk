@@ -1,5 +1,5 @@
 ifeq ($(BOARD_HAVE_QCOM_FM),true)
-ifneq (,$(filter $(QCOM_BOARD_PLATFORMS),$(TARGET_BOARD_PLATFORM)))
+#ifneq (,$(filter $(QCOM_BOARD_PLATFORMS),$(TARGET_BOARD_PLATFORM)))
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -29,5 +29,5 @@ ifeq ($(TARGET_QCOM_NO_FM_FIRMWARE),true)
 endif
 
 include $(BUILD_SHARED_LIBRARY)
-endif # is-vendor-board-platform
+#endif # is-vendor-board-platform
 endif # BOARD_HAVE_QCOM_FM
